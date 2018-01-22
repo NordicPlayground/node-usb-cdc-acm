@@ -168,7 +168,7 @@ class UsbCdcAcm extends Duplex {
     }
     
     _onData(data) {
-        debug('_onData ' + data);
+        debug('_onData ', data);
         const keepReading = this.push(data);
         if (!keepReading) {
             this._stopPolling();
