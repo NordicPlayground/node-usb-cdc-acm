@@ -200,7 +200,6 @@ class UsbCdcAcm extends Duplex {
         this.out.transfer(data, callback);
     }
     
-    
     _final() {
         debug('_final');
     }
@@ -208,13 +207,11 @@ class UsbCdcAcm extends Duplex {
 //     _writev(){}
     
     _destroy(){
-        debug('_destroy');
-//         this._stopPolling();
+        debug('_destroy');        
         
-        
-        // Close all resources, waiting for everything,
-        // reattach kernel drivers if they were attached before,
-        // then emit a 'close' event.
+        // Set line state as unused, close all resources, release interfaces 
+        // (waiting until they are released), reattach kernel drivers if they 
+        // were attached before, then emit a 'close' event.
         
         this._controlLineState(false)
         .then(()=>{
@@ -244,16 +241,6 @@ class UsbCdcAcm extends Duplex {
             });
         });
         
-//         util.promisify(this.ctr.removeAllListeners.bind(this))()
-//         .then(util.promisify(this.in.removeAllListeners.bind(this)))
-//         .then(util.promisify(this.out.removeAllListeners.bind(this)))
-//         .then(util.promisify(this.ifaceCdc.release.bind(this)))
-//         .then(util.promisify(this.ifaceData.release.bind(this)))
-//         .then(()=>{
-//             debug('All resources released');
-//             this.emit('close');
-//         });
-        
     }
     
     
@@ -280,7 +267,7 @@ class UsbCdcAcm extends Duplex {
         const data = new Buffer([
             0, 0, 0, 0, // Four bytes for the bitrate, will be filled in later.
             0, // Stop bits. 0 means "1 stop bit"
-            0, // Parity. 0 meand "no parity
+            0, // Parity. 0 means "no parity"
             8  // Number of data bits
         ]);
         
