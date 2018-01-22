@@ -13,9 +13,10 @@ Debug.enable('*');
 
 
 // let device = usb.findByIds( 0x1915, 0x521f );   // VID/PID for Nordic semi / USB SDFU
-let device = usb.findByIds( 0x1366, 0x1015 );   // VID/PID for a Segger IMCU
+// let device = usb.findByIds( 0x1366, 0x1015 );   // VID/PID for a Segger IMCU (with USB storage)
+let device = usb.findByIds( 0x1366, 0x0105 );   // VID/PID for a Segger IMCU (without USB storage)
 
-// console.log(device);
+console.log(device);
 
 device.timeout = 100;
 debug('Opening device');
@@ -31,29 +32,34 @@ let ifaces = device.interfaces;
 
 usb.setDebugLevel(4);
 
-let stream = UsbCdcAcm.fromUsbDevice(device);
+let stream = UsbCdcAcm.fromUsbDevice(device, { baudRate: 115200 });
 
 // // debug('')(stream);
 // 
-// stream.on('data', (data)=>{ debug('data')(data); });
-// stream.on('error', (err)=>{ debug('error')(err); });
-// stream.on('status', (sts)=>{ debug('status')(sts); });
+stream.on('data', (data)=>{ debug('data', data); });
+stream.on('error', (err)=>{ debug('error',err); });
+stream.on('status', (sts)=>{ debug('status', sts); });
 stream.on('close', ()=>{debug('Stream is now closed')});
+stream.on('drain', ()=>{debug('Stream can be drained now')});
 
-setTimeout(()=>{
+let timer = setInterval(()=>{
+// setTimeout(()=>{
 //     stream.write(new Uint8Array([0x00, 0xC0]));
-    stream.write("foo\r\n");
-}, 500);
+    const written = stream.write("foobar\r\n");
+    debug('Sent a write');
+}, 100);
 
 // 
 setTimeout(()=>{
+    clearInterval(timer);
+    
     debug('Closing the stream');
-    stream.end();
+    stream.destroy();
     
-//     setTimeout(()=>{
-//         debug('Closing device');
-// //         device.close();
-//     }, 10500);
+    setTimeout(()=>{
+        debug('Closing device');
+//         device.close();
+    }, 5000);
     
-}, 1000);
+}, 5000);
 

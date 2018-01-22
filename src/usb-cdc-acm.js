@@ -89,21 +89,19 @@ function assertDataInterface(iface) {
 
 // export class UsbCdcAcm extends Duplex {
 class UsbCdcAcm extends Duplex {
-    constructor(ifaceCdc) {
+    constructor(ifaceCdc, options = {}) {
         
         const ifaceDataId = assertCdcInterface(ifaceCdc);
         if (ifaceDataId === false){
             throw new Error('CDC interface is not valid');
         }
         
-        
         const ifaceData = ifaceCdc.device.interfaces[ifaceDataId];
-        
         if (!assertDataInterface(ifaceData) ){
             throw new Error('Data interface is not valid');
         }
         
-        super();
+        super(options);
         
         this.ifaceCdc = ifaceCdc;
         this.ifaceData = ifaceData;
@@ -121,42 +119,36 @@ class UsbCdcAcm extends Duplex {
         
         debug('claiming interfaces');
         
-//         if (ifaceCdc.isKernelDriverActive()) {
-//             ifaceCdc.detachKernelDriver();
-//         }
+        this._reattachCdcDriverAtFinal = false;
+        if (ifaceCdc.isKernelDriverActive()) {
+            ifaceCdc.detachKernelDriver();
+            this._reattachCdcDriverAtFinal = true;
+        }
         ifaceCdc.claim();
         
-//         if (ifaceData.isKernelDriverActive()) {
-//             ifaceData.detachKernelDriver();
-//         }
+        this._reattachDataDriverAtFinal = false;
+        if (ifaceData.isKernelDriverActive()) {
+            ifaceData.detachKernelDriver();
+            this._reattachDataDriverAtFinal = true;
+        }
         ifaceData.claim();
         
         this.ctr.on('data', this._onStatus.bind(this));
         this.ctr.on('error', this._onError.bind(this));
+        this.ctr.startPoll();
         
-//         // Perform a SET_LINE_CODING request
         
-        // Perform a USB_CDC_REQ_SET_CONTROL_LINE_STATE (0x22) control transfer
-        // This is documented in the PSTN doc of the USB spec, section 6.3.12
-        this._controlTransfer(
-            0x21, // bmRequestType: [host-to-device, type: class, recipient: iface]
-            0x22, // SET_CONTROL_LINE_STATE
-            0x03, // 0x02 "Activate carrier" & 0x01 "DTE is present"
-            ifaceCdc.id, // interface index ???
-            new Buffer([])     // No data expected back
-//         ).then(()=>{
-//             return this._controlTransfer(
-//                 0x21, // bmRequestType: [host-to-device, type: class, recipient: iface]
-//                 0x20, // SET_LINE_CODING
-//                 0x01, // value 0x0
-//                 0x00, // index 0
-//                 new Uint8Array([0x80, 0x25, 0, 0, 0, 0, 0x08])
-//         )
-//         })
-        ).then( ()=>{
-            debug('Control transfer 0x21 0x20 performed');
+        // Set baud rate and serial line params,
+        // then set the line as active
+        this._controlLineCoding(options.baudRate || 9600)
+        .then(()=>{ this._controlLineState(true) })
+        .then(()=>{
             
-            this.in.on('data', this._onData.bind(this));
+//             debug('in', this.in);
+//             debug('out', this.out);
+//             debug('ctr', this.ctr);
+            
+            this.in.on('data', (data)=>this._onData(data));
             this.in.on('error', (err)=>this.emit('error', err));
             this.out.on('error', (err)=>this.emit('error', err));
             
@@ -164,10 +156,6 @@ class UsbCdcAcm extends Duplex {
             this.out.timeout = 1000;
         });
         
-        
-        debug(this.device.descriptor);
-        
-//         if (!desc || desc.
     }
     
     _read(){
@@ -206,41 +194,54 @@ class UsbCdcAcm extends Duplex {
         }
     }
     
-    _write(data){
+    _write(data, encoding, callback){
         debug('_write ' + data.toString());
 
-        this.out.transfer(data, (err)=>{
-            if (err) {
-                debug('Out transfer error: ', err);
-                this.emit(err)
-            } else {
-                debug('Out transfer OK');
-            }
-        });
+        this.out.transfer(data, callback);
+    }
+    
+    
+    _final() {
+        debug('_final');
     }
     
 //     _writev(){}
     
-    _final(){
-        debug('_final');
+    _destroy(){
+        debug('_destroy');
 //         this._stopPolling();
         
         
         // Close all resources, waiting for everything,
+        // reattach kernel drivers if they were attached before,
         // then emit a 'close' event.
         
-        this.ctr.removeAllListeners();
-        this.in.removeAllListeners();
-        this.out.removeAllListeners();
-        
-        this.ifaceCdc.release(true, (err)=>{
-            if (err) { throw err }
-            this.ifaceData.release(true, (err2)=>{
-                if (err2) { throw err2 }
-                
-                debug('All resources released');
-                this.emit('close');
-            });            
+        this._controlLineState(false)
+        .then(()=>{
+
+            this._stopPolling();
+            this.ctr.stopPoll();
+            
+            this.ctr.removeAllListeners();
+            this.in.removeAllListeners();
+            this.out.removeAllListeners();
+
+            this.ifaceCdc.release(true, (err)=>{
+                if (err) { throw err }
+                this.ifaceData.release(true, (err2)=>{
+                    if (err2) { throw err2 }
+                    
+                    if (this._reattachCdcDriverAtFinal) {
+                        this.ifaceCdc.attachKernelDriver()
+                    }
+                    if (this._reattachDataDriverAtFinal) {
+                        this.ifaceData.attachKernelDriver()
+                    }
+                    
+                    debug('All resources released');
+                    this.emit('close');
+                });            
+            });
         });
         
 //         util.promisify(this.ctr.removeAllListeners.bind(this))()
@@ -255,18 +256,60 @@ class UsbCdcAcm extends Duplex {
         
     }
     
+    
+    // Performs a _controlTransfer() to set the line state.
+    // Set active to a truthy value to indicate there is something connected to the line,
+    // falsy otherwise.
+    // Returns a Promise.
+    _controlLineState(active) {
+        // This is documented in the PSTN doc of the USB spec, section 6.3.12
+        return this._controlTransfer(
+            0x21, // bmRequestType: [host-to-device, type: class, recipient: iface]
+            0x22, // SET_CONTROL_LINE_STATE
+            active ? 0x03 : 0x00, // 0x02 "Activate carrier" & 0x01 "DTE is present"
+            this.ifaceCdc.id, // interface index
+            new Buffer([])     // No data expected back
+        );
+    }
+    
+    // Performs a _controlTransfer to set the line coding.
+    // This includes bitrate, stop bits, parity, and data bits.
+    _controlLineCoding(baudRate = 9600) {
+        // This is documented in the PSTN doc of the USB spec, section 6.3.10,
+        // values for the data structure at the table in 6.3.11.
+        const data = new Buffer([
+            0, 0, 0, 0, // Four bytes for the bitrate, will be filled in later.
+            0, // Stop bits. 0 means "1 stop bit"
+            0, // Parity. 0 meand "no parity
+            8  // Number of data bits
+        ]);
+        
+        data.writeInt32LE(baudRate, 0);
+        
+        debug('Setting baud rate to ', baudRate);
+        
+        return this._controlTransfer(
+            0x21, // bmRequestType: [host-to-device, type: class, recipient: iface]
+            0x20, // SET_LINE_CODING
+            0x00, // Always zero
+            this.ifaceCdc.id, // interface index
+            data
+        );
+    }
+    
     // The device's controlTransfer, wrapped as a Promise
     _controlTransfer(bmRequestType, bRequest, wValue, wIndex, data_or_length) {
-        return Promise.resolve();
-//         return new Promise((res, rej)=>{
-//             this.device.controlTransfer(
-//                 bmRequestType, 
-//                 bRequest, 
-//                 wValue, 
-//                 wIndex, 
-//                 data_or_length, 
-//                 (err, data)=>{ err ? rej(err) : res(data); })
-//         });
+//         return Promise.resolve();
+        return new Promise((res, rej)=>{
+            this.device.controlTransfer(
+                bmRequestType, 
+                bRequest, 
+                wValue, 
+                wIndex, 
+                data_or_length, 
+                (err, data)=>{ err ? rej(err) : res(data); }
+            );
+        });
     }
     
     
@@ -278,7 +321,7 @@ class UsbCdcAcm extends Duplex {
     // when the stream is no longer used, or if this method throws an error.
     //
     // Returns an array of instances of UsbCdcAcm.
-    static fromUsbDevice(device){
+    static fromUsbDevice(device, options = {}){
         
         let ifaces = device.interfaces;
         
@@ -292,11 +335,11 @@ class UsbCdcAcm extends Duplex {
 //             debug(endpoints);
             
             if (assertCdcInterface(iface) !== false) {
-               return new UsbCdcAcm(iface); 
+               return new UsbCdcAcm(iface, options); 
             }
         }
         
-        throw new Error('No valid interfaces found in USB device (they do not have one "in" bulk endpoint and one "out" bulk endpoint)');
+        throw new Error('No valid CDC interfaces found in USB device');
     }
 
 }
