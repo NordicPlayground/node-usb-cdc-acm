@@ -3,7 +3,7 @@
 
 Userspace javascript implementation of a USB CDC ACM driver, on top of libusb.
 
-[![Build Status](https://travis-ci.org/NordicSemiconductor/node-usb-cdc-acm.svg?branch=master)](https://travis-ci.org/NordicSemiconductor/node-usb-cdc-acm)
+[![Build Status](https://travis-ci.org/NordicPlayground/node-usb-cdc-acm.svg?branch=master)](https://travis-ci.org/NordicPlayground/node-usb-cdc-acm)
 
 This is part of [Nordic Semiconductor](http://www.nordicsemi.com/)'s javascript tools to
 interface with nRF SoCs and development kits. Although USB CDC ACM is part of the USB specifications

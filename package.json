@@ -6,7 +6,6 @@
   "main": "dist/usb-cdc-acm.cjs.js",
   "author": "Iván Sánchez Ortega <ivan@sanchezortega.es>",
   "license": "BSD",
-  "private": true,
   "scripts": {
     "rollup": "rollup -c rollup.config.js",
     "lint": "eslint src/",
@@ -23,5 +22,6 @@
     "rollup": "^0.55.0",
     "rollup-plugin-buble": "^0.18.0",
     "rollup-plugin-eslint": "^4.0.0"
-  }
+  },
+  "repository": "https://github.com/NordicPlayground/node-usb-cdc-acm.git",
 }
