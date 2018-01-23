@@ -61,5 +61,5 @@ For a more complete example, check the `test/test.js` file.
 
 ## Legal
 
-Distrubuted under a BSD-3 license. See the `LICENSE` file for details.
+Distributed under a BSD-3 license. See the `LICENSE` file for details.
 
