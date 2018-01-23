@@ -1,7 +1,21 @@
-language: node_js
-node_js:
-  - node
-  - 6
-  - 7
-  - 8
-  
+
+language: objective-c
+
+env:
+  matrix:
+  - NODE_VERSION="8"
+  - NODE_VERSION="9"
+
+before_install:
+    - brew update
+    - brew install nvm
+    - export NVM_DIR=~/.nvm
+    - source $(brew --prefix nvm)/nvm.sh
+    - nvm install $NODE_VERSION
+    - node --version
+    - npm --version
+
+script:
+    - npm install
+    - npm run rollup
+    
