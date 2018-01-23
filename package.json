@@ -5,7 +5,7 @@
   "module": "src/usb-cdc-acm.js",
   "main": "dist/usb-cdc-acm.cjs.js",
   "author": "Iván Sánchez Ortega <ivan@sanchezortega.es>",
-  "license": "TBD",
+  "license": "BSD",
   "private": true,
   "scripts": {
     "rollup": "rollup -c rollup.config.js",
