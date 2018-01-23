@@ -51,7 +51,7 @@ setTimeout(function(){
 ```
 
 If the device has several CDC ACM interfaces and finer control is needed, 
-```
+```js
 // An options object with the baud rate is optional.
 let stream = new UsbCdcAcm(device.interfaces[0], { baudRate: 1000000});
 ```
