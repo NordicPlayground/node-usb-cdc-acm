@@ -114,17 +114,22 @@ export default class UsbCdcAcm extends Duplex {
         debugInfo('claiming interfaces');
 
         this._reattachCdcDriverAtFinal = false;
-        if (ifaceCdc.isKernelDriverActive()) {
-            ifaceCdc.detachKernelDriver();
-            this._reattachCdcDriverAtFinal = true;
+        this._reattachDataDriverAtFinal = false;
+        // Linux/mac need to detach the cdc-acm kernel driver, but
+        // windows users did that manually, and libusb-win just throws
+        // errors when detaching/attaching kernel drivers.
+        if (process.platform !== 'win32') {
+            if (ifaceCdc.isKernelDriverActive()) {
+                ifaceCdc.detachKernelDriver();
+                this._reattachCdcDriverAtFinal = true;
+            }
+
+            if (ifaceData.isKernelDriverActive()) {
+                ifaceData.detachKernelDriver();
+                this._reattachDataDriverAtFinal = true;
+            }
         }
         ifaceCdc.claim();
-
-        this._reattachDataDriverAtFinal = false;
-        if (ifaceData.isKernelDriverActive()) {
-            ifaceData.detachKernelDriver();
-            this._reattachDataDriverAtFinal = true;
-        }
         ifaceData.claim();
 
         this.ctr.on('data', this._onStatus.bind(this));

@@ -1,6 +1,6 @@
 {
   "name": "usb-cdc-acm",
-  "version": "0.1.0",
+  "version": "0.1.1",
   "description": "Userspace javascript implementation of a USB CDC ACM driver, on top of libusb",
   "module": "src/usb-cdc-acm.js",
   "main": "dist/usb-cdc-acm.cjs.js",

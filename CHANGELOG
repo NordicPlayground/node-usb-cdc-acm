@@ -1,4 +1,8 @@
 
+# v0.1.1 (2018-01-24)
+
+* Worked around calling `isKernelDriverAttached()` in win32 platforms, where it's unsupported.
+
 # v0.1.0 (2018-01-23)
 
 * Initial release
