@@ -9,8 +9,11 @@
 // Given a Uint8Array, returns an Array of Uint8Array
 // Each element of the resulting array is a subarray of the original Uint8Array.
 export default function splitDescriptors(bytes) {
-    let len = bytes.length;
     const descs = [];
+    if (Object.prototype.toString.call(bytes) !== '[object Uint8Array]') {
+        return descs;
+    }
+    let len = bytes.length;
     let pointer = 0;
 
     while (len > 0) {
@@ -38,4 +41,3 @@ The previous code should output:
   Uint8Array [ 4, 36, 2, 6 ],
   Uint8Array [ 5, 36, 6, 0, 1 ] ]
 */
-
