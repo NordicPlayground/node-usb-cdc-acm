@@ -10,7 +10,7 @@
 // Each element of the resulting array is a subarray of the original Uint8Array.
 export default function splitDescriptors(bytes) {
     const descs = [];
-    if (bytes instanceof Uint8Array) {
+    if (!(bytes instanceof Uint8Array)) {
         return descs;
     }
     let len = bytes.length;
