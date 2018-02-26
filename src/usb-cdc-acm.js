@@ -3,17 +3,11 @@ import { Duplex } from 'stream';
 import Debug from 'debug';
 import usb from 'usb';
 import splitDescriptors from './split-descriptors';
-// const Duplex = require('stream').Duplex;
-// const Debug = require('debug');
-// const usb = require('usb');
-// const util = require('util');
 
 // Two debug levels: one for initialization/teardown messages, and one
 // for logging all data being sent/recv around
 const debugInfo = Debug('usb-cdc-acm:info');
 const debugData = Debug('usb-cdc-acm:data');
-
-// const splitDescriptors = require('./split-descriptors');
 
 
 // Utility function.
@@ -241,7 +235,7 @@ export default class UsbCdcAcm extends Duplex {
             0x22, // SET_CONTROL_LINE_STATE
             active ? 0x03 : 0x00, // 0x02 "Activate carrier" & 0x01 "DTE is present"
             this.ifaceCdc.id, // interface index
-            Buffer.from([]) // No data expected back
+            Buffer.from([]), // No data expected back
         );
     }
 
@@ -266,7 +260,7 @@ export default class UsbCdcAcm extends Duplex {
             0x20, // SET_LINE_CODING
             0x00, // Always zero
             this.ifaceCdc.id, // interface index
-            data
+            data,
         );
     }
 
@@ -324,7 +318,7 @@ export default class UsbCdcAcm extends Duplex {
                 wValue,
                 wIndex,
                 dataOrLength,
-                ((err, data) => (err ? rej(err) : res(data)))
+                ((err, data) => (err ? rej(err) : res(data))),
             );
         });
     }
