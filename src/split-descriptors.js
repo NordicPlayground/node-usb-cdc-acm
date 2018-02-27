@@ -36,7 +36,6 @@
 // should be splitted into
 // 5 X X X X  |  4 X X X   |  9 X X X X X X X X
 
-
 // Given a Uint8Array, returns an Array of Uint8Array
 // Each element of the resulting array is a subarray of the original Uint8Array.
 export default function splitDescriptors(bytes) {
@@ -49,26 +48,15 @@ export default function splitDescriptors(bytes) {
 
     while (len > 0) {
         const descLen = bytes[pointer];
+        if (descLen < 1) {
+            throw new Error('invalid descriptor length');
+        }
         descs.push(bytes.subarray(pointer, pointer + descLen));
         len -= descLen;
         pointer += descLen;
     }
 
+    // TODO: Consider handling if len !== 0 at this point.
+
     return descs;
 }
-
-
-/*
-let test = Uint8Array.from([5, 36, 0, 16, 1, 5, 36, 1, 3, 1, 4, 36, 2, 6, 5, 36, 6, 0, 1]);
-
-console.log(splitDescriptors(test));
-*/
-
-/*
-The previous code should output:
-
-[ Uint8Array [ 5, 36, 0, 16, 1 ],
-  Uint8Array [ 5, 36, 1, 3, 1 ],
-  Uint8Array [ 4, 36, 2, 6 ],
-  Uint8Array [ 5, 36, 6, 0, 1 ] ]
-*/
