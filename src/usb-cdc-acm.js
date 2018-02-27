@@ -1,19 +1,43 @@
+/* Copyright (c) 2010 - 2018, Nordic Semiconductor ASA
+ *
+ * All rights reserved.
+ *
+ * Redistribution and use in source and binary forms, with or without
+ * modification, are permitted provided that the following conditions are met:
+ *
+ * 1. Redistributions of source code must retain the above copyright notice, this
+ *    list of conditions and the following disclaimer.
+ *
+ * 2. Redistributions in binary form must reproduce the above copyright
+ *    notice, this list of conditions and the following disclaimer in the
+ *    documentation and/or other materials provided with the distribution.
+ *
+ * 3. Neither the name of Nordic Semiconductor ASA nor the names of its
+ *    contributors may be used to endorse or promote products derived from this
+ *    software without specific prior written permission.
+ *
+ * THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS IS"
+ * AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE
+ * IMPLIED WARRANTIES OF MERCHANTABILITY, AND FITNESS FOR A PARTICULAR PURPOSE
+ * ARE DISCLAIMED. IN NO EVENT SHALL NORDIC SEMICONDUCTOR ASA OR CONTRIBUTORS BE
+ * LIABLE FOR ANY DIRECT, INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY, OR
+ * CONSEQUENTIAL DAMAGES (INCLUDING, BUT NOT LIMITED TO, PROCUREMENT OF
+ * SUBSTITUTE GOODS OR SERVICES; LOSS OF USE, DATA, OR PROFITS; OR BUSINESS
+ * INTERRUPTION) HOWEVER CAUSED AND ON ANY THEORY OF LIABILITY, WHETHER IN
+ * CONTRACT, STRICT LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE)
+ * ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
+ * POSSIBILITY OF SUCH DAMAGE.
+ */
 
 import { Duplex } from 'stream';
 import Debug from 'debug';
 import usb from 'usb';
 import splitDescriptors from './split-descriptors';
-// const Duplex = require('stream').Duplex;
-// const Debug = require('debug');
-// const usb = require('usb');
-// const util = require('util');
 
 // Two debug levels: one for initialization/teardown messages, and one
 // for logging all data being sent/recv around
 const debugInfo = Debug('usb-cdc-acm:info');
 const debugData = Debug('usb-cdc-acm:data');
-
-// const splitDescriptors = require('./split-descriptors');
 
 
 // Utility function.
@@ -241,7 +265,7 @@ export default class UsbCdcAcm extends Duplex {
             0x22, // SET_CONTROL_LINE_STATE
             active ? 0x03 : 0x00, // 0x02 "Activate carrier" & 0x01 "DTE is present"
             this.ifaceCdc.id, // interface index
-            Buffer.from([]) // No data expected back
+            Buffer.from([]), // No data expected back
         );
     }
 
@@ -266,7 +290,7 @@ export default class UsbCdcAcm extends Duplex {
             0x20, // SET_LINE_CODING
             0x00, // Always zero
             this.ifaceCdc.id, // interface index
-            data
+            data,
         );
     }
 
@@ -324,7 +348,7 @@ export default class UsbCdcAcm extends Duplex {
                 wValue,
                 wIndex,
                 dataOrLength,
-                ((err, data) => (err ? rej(err) : res(data)))
+                ((err, data) => (err ? rej(err) : res(data))),
             );
         });
     }
