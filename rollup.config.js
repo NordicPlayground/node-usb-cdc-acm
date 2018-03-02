@@ -14,5 +14,15 @@ export default [
             eslint(),
             buble(),
         ]
+    },
+    {
+        input: 'src/split-descriptors.js',
+        output: [
+            { file: 'dist/split-descriptors.cjs.js', format: 'cjs', sourcemap: true },
+        ],
+        plugins: [
+            eslint(),
+            buble(),
+        ]
     }
 ];

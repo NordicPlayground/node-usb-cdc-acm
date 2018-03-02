@@ -29,34 +29,43 @@
  * POSSIBILITY OF SUCH DAMAGE.
  */
 
-// Quasi-trivial utility to parse USB descriptors from a Uint8Array
-// The first byte in the descriptor is the descriptor length, and they are just
-// concatenated together, so something like:
-// 5 X X X X 4 X X X 9 X X X X X X X X
-// should be splitted into
-// 5 X X X X  |  4 X X X   |  9 X X X X X X X X
+const splitDescriptors = require('../dist/split-descriptors.cjs.js');
 
-// Given a Uint8Array, returns an Array of Uint8Array
-// Each element of the resulting array is a subarray of the original Uint8Array.
-export default function splitDescriptors(bytes) {
-    const descs = [];
-    if (!(bytes instanceof Uint8Array)) {
-        return descs;
-    }
-    let len = bytes.length;
-    let pointer = 0;
+describe('splitDescriptors', () => {
+    it('should return empty array for undefined input', () => {
+        expect(splitDescriptors()).toEqual([]);
+    });
 
-    while (len > 0) {
-        const descLen = bytes[pointer];
-        if (descLen < 1) {
-            throw new Error('invalid descriptor length');
-        }
-        descs.push(bytes.subarray(pointer, pointer + descLen));
-        len -= descLen;
-        pointer += descLen;
-    }
+    it('should return empty array for null input', () => {
+        expect(splitDescriptors(null)).toEqual([]);
+    });
 
-    // TODO: Consider handling if len !== 0 at this point.
+    it('should return empty array for non-Uint8Array', () => {
+        expect(splitDescriptors([1, 2, 3, 4, 5, 6, 7, 8])).toEqual([]);
+    });
 
-    return descs;
-}
+    it('should split input to subarrays', () => {
+        const bytes = new Uint8Array([
+            5, 36, 0, 16, 1, 5, 36, 1, 3, 1, 4, 36, 2, 6, 5, 36, 6, 0, 1,
+        ]);
+        expect(splitDescriptors(bytes))
+            .toEqual([
+                new Uint8Array([5, 36, 0, 16, 1]),
+                new Uint8Array([5, 36, 1, 3, 1]),
+                new Uint8Array([4, 36, 2, 6]),
+                new Uint8Array([5, 36, 6, 0, 1]),
+            ]);
+    });
+
+    it('should silently ignore insufficient data', () => {
+        const bytes = new Uint8Array([15, 36, 0, 16, 1]);
+        expect(splitDescriptors(bytes)).toEqual([bytes]);
+    });
+
+    it('should throw exception on 0 length descriptor', () => {
+        const bytes = new Uint8Array([0, 36, 0, 16, 1]);
+        expect(() => {
+            splitDescriptors(bytes);
+        }).toThrowError();
+    });
+});
